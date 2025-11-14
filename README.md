@@ -29,6 +29,7 @@ Esta `minishell` soporta las funcionalidades clave de un intérprete de mandatos
     ```bash
     msh> ls -l | grep ".c" | wc -l
     ```
+    
 * **Redirecciones:**
     * `< fichero`: Redirección de entrada estándar.
     * `> fichero`: Redirección de salida estándar.
@@ -36,6 +37,7 @@ Esta `minishell` soporta las funcionalidades clave de un intérprete de mandatos
     ```bash
     msh> sort < fichero_in.txt > fichero_out.txt
     ```
+    
 * **Procesos en Background:** Ejecuta trabajos en segundo plano usando `&`, permitiendo al usuario seguir usando la shell.
     ```bash
     msh> find / -name "core" &
@@ -99,24 +101,15 @@ He implementado varios mandatos *built-in* que se ejecutan directamente en la sh
 
 ## 📁 Estructura del Proyecto
 
-├── src/
-│   ├── 
-│   ├── 
-│   ├── 
-│   ├── 
-│   └── ...
-├── include/
-│   ├── 
-│   ├── 
-│   ├── 
-│   └── ...
-└── README.md
 
 ---
 
 ## 👨‍💻 Autores
 
 * **Pablo Ruiz Uroz**
+    * GitHub: `[@TuUsuarioDeGitHub]` (Reemplaza esto)
     * Email: `p.ruizu.2023@alumnos.urjc.es`
 * **Hugo Capa Mora**
-    * Email: `h.capa.2023@alumnos.ujc.es`
+    * GitHub: `[@UsuarioCompañero]` (Reemplaza esto)
+    * Email: `h.capa.2023@alumnos.urjc.es`
+(Esta es una estructura de ejemplo basada en tu comando de compilación. ¡Ajústala a tu proyecto real!)
