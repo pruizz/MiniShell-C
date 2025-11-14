@@ -17,6 +17,7 @@ Un intérprete de mandatos simple tipo shell implementado en C para la asignatur
 * [Compilación y Ejecución](#%EF%B8%8F-compilación-y-ejecución)
 * [Estructura del Proyecto](#-estructura-del-proyecto)
 * [Autores](#%E2%80%8D-autores)
+* [Licencia](#licencia)
 
 ---
 
@@ -112,3 +113,10 @@ He implementado varios mandatos *built-in* que se ejecutan directamente en la sh
     * Email: `p.ruizu.2023@alumnos.urjc.es`
 * **Hugo Capa Mora**
     * Email: `h.capa.2023@alumnos.urjc.es`
+
+---
+## Licencia
+
+Este proyecto se publica exclusivamente con fines académicos y educativos.
+
+<p align="center"> <b>⭐ Si este proyecto te sirve, deja una estrella en GitHub ⭐</b> </p>
