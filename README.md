@@ -14,9 +14,9 @@ Un intérprete de mandatos simple tipo shell implementado en C para la asignatur
 
 * [Características Principales](#-características-principales)
 * [Mandatos Internos](#-mandatos-internos)
-* [Compilación y Ejecución](#-compilación-y-ejecución)
+* [Compilación y Ejecución](%EF%B8%8F-compilación-y-ejecución)
 * [Estructura del Proyecto](#-estructura-del-proyecto)
-* [Autores](#-autores)
+* [Autores](%E2%80%8D-autores)
 
 ---
 
@@ -35,7 +35,9 @@ Esta `minishell` soporta las funcionalidades clave de un intérprete de mandatos
     * `> fichero`: Redirección de salida estándar.
     * `>& fichero`: Redirección de la salida de error estándar.
     ```bash
+    
     msh> sort < fichero_in.txt > fichero_out.txt
+
     ```
     
 * **Procesos en Background:** Ejecuta trabajos en segundo plano usando `&`, permitiendo al usuario seguir usando la shell.
