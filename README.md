@@ -14,9 +14,9 @@ Un intérprete de mandatos simple tipo shell implementado en C para la asignatur
 
 * [Características Principales](#-características-principales)
 * [Mandatos Internos](#-mandatos-internos)
-* [Compilación y Ejecución](%EF%B8%8F-compilación-y-ejecución)
+* [Compilación y Ejecución](#%EF%B8%8F-compilación-y-ejecución)
 * [Estructura del Proyecto](#-estructura-del-proyecto)
-* [Autores](%E2%80%8D-autores)
+* [Autores](#%E2%80%8D-autores)
 
 ---
 
