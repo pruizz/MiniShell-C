@@ -12,11 +12,11 @@ Un intérprete de mandatos simple tipo shell implementado en C para la asignatur
 
 ## 📋 Tabla de Contenidos
 
-* [Características Principales](#✨-características-principales)
-* [Mandatos Internos](#🔧-mandatos-internos)
-* [Compilación y Ejecución](#⚙️-compilación-y-ejecución)
-* [Estructura del Proyecto](#📁-estructura-del-proyecto)
-* [Autores](#👨‍💻-autores)
+* [Características Principales](#características-principales)
+* [Mandatos Internos](#mandatos-internos)
+* [Compilación y Ejecución](#compilación-y-ejecución)
+* [Estructura del Proyecto](#estructura-del-proyecto)
+* [Autores](#autores)
 
 ---
 
