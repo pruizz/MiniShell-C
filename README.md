@@ -107,9 +107,6 @@ He implementado varios mandatos *built-in* que se ejecutan directamente en la sh
 ## 👨‍💻 Autores
 
 * **Pablo Ruiz Uroz**
-    * GitHub: `[@TuUsuarioDeGitHub]` (Reemplaza esto)
     * Email: `p.ruizu.2023@alumnos.urjc.es`
 * **Hugo Capa Mora**
-    * GitHub: `[@UsuarioCompañero]` (Reemplaza esto)
     * Email: `h.capa.2023@alumnos.urjc.es`
-(Esta es una estructura de ejemplo basada en tu comando de compilación. ¡Ajústala a tu proyecto real!)
