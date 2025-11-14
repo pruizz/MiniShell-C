@@ -1,46 +1,111 @@
-# Minishell en C
+# Minishell 🚀
 
-Este proyecto es una implementación de un intérprete de mandatos simple (minishell) desarrollado en C como práctica para la asignatura de **[Sistemas Operativos]** en la **[URJC]**.
+Un intérprete de mandatos simple tipo shell implementado en C para la asignatura de Sistemas Operativos en la URJC.
 
-El objetivo principal es crear un shell capaz de leer, analizar y ejecutar mandatos introducidos por el usuario, gestionando procesos, tuberías (pipes) y redirecciones.
+<p align="center">
+  <img alt="Language" src="https://img.shields.io/badge/Language-C-blue?style=for-the-badge&logo=c">
+  <img alt="Platform" src="https://img.shields.io/badge/Platform-Linux-yellow?style=for-the-badge&logo=linux">
+  <img alt="License" src="https://img.shields.io/badge/License-Academic-brightgreen?style=for-the-badge">
+</p>
 
 ---
 
-## 🚀 Características Implementadas
+## 📋 Tabla de Contenidos
 
-Mi minishell (`msh>`) soporta las siguientes funcionalidades:
+* [Características Principales](#✨-características-principales)
+* [Mandatos Internos](#🔧-mandatos-internos)
+* [Compilación y Ejecución](#⚙️-compilación-y-ejecución)
+* [Estructura del Proyecto](#📁-estructura-del-proyecto)
+* [Autores](#👨‍💻-autores)
 
-* **Ejecución de mandatos:** Ejecuta programas externos (como `ls`, `grep`, `cat`, etc.) con sus argumentos.
-* **Tuberías (Pipes):** Permite encadenar múltiples mandatos con el operador `|`.
-    * `ejemplo: ls -l | grep ".c" | wc -l`
+---
+
+## ✨ Características Principales
+
+Esta `minishell` soporta las funcionalidades clave de un intérprete de mandatos moderno:
+
+* **Ejecución de Mandatos:** Ejecuta cualquier programa externo del sistema (como `ls`, `grep`, `awk`, `find`...) con sus argumentos.
+* **Tuberías (Pipes):** Encadena múltiples mandatos. La salida de un mandato es la entrada del siguiente.
+    ```bash
+    msh> ls -l | grep ".c" | wc -l
+    ```
 * **Redirecciones:**
-    * `< fichero`: Redirección de entrada (solo en el primer mandato).
-    * `> fichero`: Redirección de salida (solo en el último mandato).
-    * `>& fichero`: Redirección de la salida de error (solo en el último mandato).
-* **Ejecución en Background:** Permite ejecutar trabajos en segundo plano usando el operador `&` al final de la línea.
+    * `< fichero`: Redirección de entrada estándar.
+    * `> fichero`: Redirección de salida estándar.
+    * `>& fichero`: Redirección de la salida de error estándar.
+    ```bash
+    msh> sort < fichero_in.txt > fichero_out.txt
+    ```
+* **Procesos en Background:** Ejecuta trabajos en segundo plano usando `&`, permitiendo al usuario seguir usando la shell.
+    ```bash
+    msh> find / -name "core" &
+    [1] 12345
+    ```
 * **Gestión de Señales:**
-    * **SIGINT (Ctrl-C):** Los procesos en *foreground* terminan, pero el minishell y los procesos en *background* la ignoran.
-    * **SIGTSTP (Ctrl-Z):** El minishell la ignora, pero los procesos en *foreground* se detienen.
+    * `SIGINT (Ctrl+C)`: Es ignorada por la minishell y los procesos en background, pero termina los procesos en foreground.
+    * `SIGTSTP (Ctrl+Z)`: Es ignorada por la minishell, pero detiene los procesos en foreground para su posterior gestión.
 
 ---
 
-## 🔧 Mandatos Internos (Built-ins)
+## 🔧 Mandatos Internos
 
-Además de ejecutar programas externos, el minishell incluye los siguientes mandatos internos:
+He implementado varios mandatos *built-in* que se ejecutan directamente en la shell sin crear un nuevo proceso:
 
-* `cd [directorio]`
-    Cambia el directorio de trabajo actual. Si no se proporciona un argumento, cambia al directorio `HOME` del usuario. Muestra la nueva ruta absoluta.
-
-* `exit`
-    Termina la ejecución del minishell de forma ordenada.
-
-* `jobs`
-    Muestra la lista de trabajos que se están ejecutando en segundo plano o que han sido detenidos (por `Ctrl-Z`).
-
-* `bg [job_id]`
-    Reanuda la ejecución en *background* de un trabajo que estaba detenido. Si no se especifica `job_id`, se reanuda el último trabajo detenido.
-
-* `umask [modo_octal]`
-    Establece o consulta la máscara de permisos por defecto para la creación de nuevos ficheros. Si se ejecuta sin argumentos, muestra la máscara actual en formato octal.
+| Mandato | Descripción |
+| :--- | :--- |
+| **`cd [dir]`** | Cambia el directorio de trabajo actual. Si no se usa argumento, va a `$HOME`. |
+| **`exit`** | Termina la ejecución del minishell de forma limpia. |
+| **`jobs`** | Muestra la lista de trabajos en background o detenidos. |
+| **`bg [job_id]`**| Reanuda un trabajo detenido (`Stopped`) en segundo plano. |
+| **`umask [octal]`** | Establece o muestra la máscara de permisos para la creación de nuevos ficheros. |
 
 ---
+
+## ⚙️ Compilación y Ejecución
+
+### Requisitos
+* Compilador `gcc`
+* `make` (opcional, pero recomendado)
+* Librería `parser` (proporcionada por la cátedra)
+
+### Pasos de Instalación
+
+1.  **Clona el repositorio:**
+    ```bash
+    git clone [https://github.com/](https://github.com/)[TuUsuario]/[TuRepo].git
+    cd [TuRepo]
+    ```
+
+2.  **Compila el proyecto:**
+    (Ajusta esta línea según cómo enlaces la librería `parser`. Si tienes un `Makefile`, ¡mejor!)
+    ```bash
+    gcc -o myshell myshell.c parser/parser.c -Wall -Wextra
+    ```
+    *Si usas un Makefile:*
+    ```bash
+    make
+    ```
+
+3.  **Ejecuta la Minishell:**
+    ```bash
+    ./myshell
+    ```
+    Y verás el prompt:
+    ```
+    msh>
+    ```
+
+---
+
+## 📁 Estructura del Proyecto
+
+(Esto es opcional, pero da puntos extra de profesionalidad)
+
+---
+
+## 👨‍💻 Autores
+
+* **Pablo Ruiz Uroz**
+    * Email: `p.ruizu.2023@alumnos.urjc.es`
+* **Hugo Capa Mora**
+    * Email: `h.capa.2023@alumnos.ujc.es`
