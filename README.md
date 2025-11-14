@@ -99,7 +99,18 @@ He implementado varios mandatos *built-in* que se ejecutan directamente en la sh
 
 ## 📁 Estructura del Proyecto
 
-(Esto es opcional, pero da puntos extra de profesionalidad)
+├── src/
+│   ├── 
+│   ├── 
+│   ├── 
+│   ├── 
+│   └── ...
+├── include/
+│   ├── 
+│   ├── 
+│   ├── 
+│   └── ...
+└── README.md
 
 ---
 
