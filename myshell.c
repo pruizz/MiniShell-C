@@ -73,7 +73,41 @@ int main(void) {
             printf("msh> ");
 			continue;
 		}
-        if (line -> ncommands == 1 ){
+        //si es el mandato cd
+        if(line -> ncommands > 0 && strcmp(line -> commands[0].filename, "cd") == 0){
+            char *target; //puntero para almacenar la ruta de destino
+            int available = 1; //para llevar la lógica de si se podrá ejecutar o no
+            //caso 1: no argumentos así que vamos a home
+            if(line -> commands[0].argc == 1){
+                target = getenv("HOME");
+                if(target == NULL){
+                    fprintf(stderr,"cd: HOME no existe la variable\n");
+                    available = 0;
+                }
+            }else if(line->commands[0].argc == 2){ //caso 2: que me venga un argumento que sería la ruta relativa o absoluta
+                target = line->commands[0].argv[1];
+                
+            }else{ //si no es ningún caso de los anteriores el mandato está mal llamado
+                fprintf(stderr,"cd: demasiados argumentos\n");
+                available = 0;
+            }
+            if(available && target != NULL){ //pasamos a ejecutar el cd
+                if(chdir(target) == -1){ //caso error
+                    fprintf(stderr,"Error en el cd: %s", strerror(errno));
+                }else{
+                    char cwd_buff[1024];
+                    //almacenamos la cadena que representa la ruta absoluta del directorio actual
+                    if(getcwd(cwd_buff, sizeof(cwd_buff)) != NULL){
+                        printf("%s\n", cwd_buff);
+                    }else{ //marcamos el error con perror pq es el estándar para reportar un error dee función deel sistema (getcwd)
+                        perror("cd: error al obtener el directorio actual");
+                    }    
+                }
+            }
+            printf("msh> ");
+            continue; //para que pueda seguir comprobando los demás elseifs
+        }
+        else if (line -> ncommands == 1 ){
             pid = fork();
 
             if (pid < 0){
