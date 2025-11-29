@@ -8,8 +8,6 @@
 #include <sys/stat.h>
 #include "parser.h"
 
-#define MAX_LINE_BUFFER 1024
-
 //Metodo para abstraer la logica de redirecciones y limpiar el codigo
 void redirect(tline * line, int index) {
     int fdaux;
@@ -61,33 +59,22 @@ void redirect(tline * line, int index) {
 }
 
 int main(void) {
-	char buf[MAX_LINE_BUFFER];
-    char cwd_buff[MAX_LINE_BUFFER];
+	char buf[1024];
 	tline * line;
-    pid_t pid;
+    pid_t pid,pid2;
     int status;
-    int i;
-    int last_pipe_fd;
     int p[2];
 
 	printf("msh> ");	
-	while (fgets(buf, MAX_LINE_BUFFER, stdin)) {
+	while (fgets(buf, 1024, stdin)) {
 		
 		line = tokenize(buf);
 		if (line==NULL) {
             printf("msh> ");
 			continue;
 		}
-
-         // --- MANDATO INTERNO: CD ---
-        // Comprobamos con argv[0] para evitar error si el comando no existe (filename sería NULL)
-        if(line -> ncommands > 0 && strcmp(line -> commands[0].argv[0], "cd") == 0){
-
-            if (line -> ncommands > 1 ){
-                fprintf(stderr,"Error no se puede usar CD con mas comandos");
-                exit(1);
-            }
-            
+        //si es el mandato cd
+        if(line -> ncommands > 0 && strcmp(line -> commands[0].filename, "cd") == 0){
             char *target; //puntero para almacenar la ruta de destino
             int available = 1; //para llevar la lógica de si se podrá ejecutar o no
             //caso 1: no argumentos así que vamos a home
@@ -108,7 +95,7 @@ int main(void) {
                 if(chdir(target) == -1){ //caso error
                     fprintf(stderr,"Error en el cd: %s", strerror(errno));
                 }else{
-                    
+                    char cwd_buff[1024];
                     //almacenamos la cadena que representa la ruta absoluta del directorio actual
                     if(getcwd(cwd_buff, sizeof(cwd_buff)) != NULL){
                         printf("%s\n", cwd_buff);
@@ -118,80 +105,99 @@ int main(void) {
                 }
             }
             printf("msh> ");
-            continue;
+            continue; //para que pueda seguir comprobando los demás elseifs
         }
-
-        last_pipe_fd = -1;
-        for ( i = 0; i< line -> ncommands; i++){
-            //Creacion de la pipe --> Solo necesario si no soy el ultimo mandato
-            if( i < line-> ncommands-1 ) {
-               if (pipe(p) < 0) {
-                    fprintf(stderr, "Error al crear pipe: %s\n", strerror(errno));
-                    exit(1);
-                }
-            }
-
+        else if (line -> ncommands == 1 ){
             pid = fork();
 
-            if ( pid < 0){
-                 fprintf(stderr,"Error a la hora de hacer fork: %s \n",strerror(errno));
+            if (pid < 0){
+                fprintf(stderr,"Error a la hora de hacer fork: %s \n",strerror(errno));
             }
-            //Soy Proceso Hijo
+
             else if (pid == 0)
             {
-                //Si last pipe tiene valor signifca que tengo que recibir la entrada desde la pipe
-                //Apunto el extremo de lecuta del pipe que ha guardado el padre a mi entrada estandar
-                if (last_pipe_fd != -1){
-                    dup2(last_pipe_fd,STDIN_FILENO);
-                    close(last_pipe_fd);
-                }
-
-                //Conectar la salida apuntando el lado de escrtiura de mi pipe a mi salida estandar: Si no soy el ultimo tengo que escribir en el pipe
-                if( i < line -> ncommands-1){
-                    close(p[0]);
-                    dup2(p[1],STDOUT_FILENO);
-                    close(p[1]);
-                }
-                
-                //Gestiono las redirecciones si es el caso
-                redirect(line,i);
-
-                if (line->commands[i].filename == NULL) {
+                //Control de todas las salidas pues es el unico mandato
+                redirect(line,0);
+                //Si devuleve NULL es que el comando no existe 
+                if (line->commands[0].filename == NULL) {
                     fprintf(stderr, "mandato: No se encuentra el mandato\n"); // 
-                    exit(1);
+                    exit(1); // Matamos al hijo manualmente y de forma ordenada
                 }
-                //Ejecuto el comando
-                execvp(line->commands[i].filename, line->commands[i].argv);
-                
-                // Si llegamos aquí, execvp falló
+
+                execvp(line->commands[0].filename,line->commands[0].argv);
                 fprintf(stderr, "mandato: No se encuentra el mandato\n");
                 exit(1);
             }
-            //PADRE
             else{
-                //Si cuando entramos al padre ya hay asignado un pipe significa que ya estamos en el 2 hijo minimo
-                //Por lo que me cierro el antiguo descriptor que tenia asociado para liberar lod fd
-                //Si no lo cerrara como padre tendria muchisimos descriptores abiertos en mi tabla
-                if (last_pipe_fd != -1){
-                    close(last_pipe_fd);
-                }
-
-                //Si no estamos en el ultimo paso
-                //tengo que guardar el extremo de la pipe de lectura para el siguiente hjo que se crerara en el i++
-                //Y cierro el extremo de escritura para que cuando lea el hijosig sepa que ya no hay mas que leer
-                //Porque tmb lo cerrara el hijo por su cuenta 
-                if (i < line->ncommands - 1) {
-                    last_pipe_fd = p[0];
-                    close(p[1]);
-                }
+                //Esperar al hijo
+                wait(&status);
             }
+    
+        //PASO 2 DOS COMANDOS CORRIENDO 
+        }else if (line -> ncommands == 2){
+            //Creamos el pipe que envia la informacion entre los dos mandatos
+            pipe(p);
+            pid = fork();
+
+            if (pid < 0){
+                fprintf(stderr,"Error a la hora de hacer fork: %s \n",strerror(errno));
+
+            }else if (pid == 0)
+            {
+                //No voy a leer
+                close(p[0]);
+                //Apunto el extremo escritura del pipe a la salida estanddar
+                dup2(p[1],STDOUT_FILENO);
+                close(p[1]);
+
+                redirect(line,0);
+                if (line->commands[0].filename == NULL) {
+                    fprintf(stderr, "Mandato: No se encuentra el mandato\n"); // 
+                    exit(1);
+                }
+
+                execvp(line->commands[0].filename, line->commands[0].argv);
+                fprintf(stderr, "Mandato: No se encuentra el mandato\n"); // 
+                exit(1);
+            }
+
+            pid2 = fork();
+            if (pid2 < 0){
+                fprintf(stderr,"Error a la hora de hacer fork: %s \n",strerror(errno));
+            }
+            else if (pid2 == 0){
+                //No voy a escribir lo cierro
+                close(p[1]);
+                dup2(p[0],STDIN_FILENO);
+                close(p[0]);
+
+                redirect(line,1);
+
+                if (line->commands[1].filename == NULL) {
+                    fprintf(stderr, "Mandato: No se encuentra el mandato\n"); // 
+                    exit(1);
+                }
+
+                execvp(line->commands[1].filename, line->commands[1].argv);
+                fprintf(stderr, "Mandato: No se encuentra el mandato\n"); // 
+                exit(1);
+
+            }
+            //Padre debe cerra los extremos de las pipe porque no los usa yy asi avisar a los hijos de el fin 
+            close(p[0]);
+            close(p[1]);
+
+            // Esperar a los dos hijos
+            wait(NULL);
+            wait(NULL);
+            
+
         }
-        // Esperar a todos los hijos creados en el bucle
-        for (i = 0; i < line->ncommands; i++) {
-            wait(&status);
+        else{
+            printf("Aun no implementados mas de do comandos");
         }
-        printf("msh> ");			
-    }
+		
+		printf("msh> ");	
+	}
+	return 0;
 }
-
-
