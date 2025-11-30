@@ -9,13 +9,37 @@
 #include "parser.h"
 
 #define MAX_LINE_BUFFER 1024
+#define MAX_JOBS 100
 
+enum job_state {
+    RUNNING,
+    STOPPED,
+    DONE
+};
+
+typedef struct job{
+    pid_t pgid; //process group id
+    char command[MAX_LINE_BUFFER]; //para guardar el comando original
+    enum job_state status;
+    int job_id;
+} job_t;
+
+job_t job_table[MAX_JOBS]; //para guardar toda la tabla de trabajos
+int next_job_id = 1;  //asignamos el siguiente ID 
+
+//funciones de control de flujo y redirección
 void aux_redirect_file(char *filename, int target_fd, int flags);
 void redirect(tline * line, int index);
 int check_if_internal(tline *line);
+//funciones para ejecutar comandos internos
 void execute_internal_cd(tline *line);
 void execute_internal_umask(tline *line);
 void execute_internal_exit();
+void execute_internal_jobs(tline *line);
+//funciones auxiliares para la gestión de los jobs
+job_t *find_job(pid_t pgid); 
+void register_job(pid_t pgid, const char *command); 
+void check_background_jobs();
 
 int main(void) {
 	char buf[MAX_LINE_BUFFER];
@@ -28,6 +52,8 @@ int main(void) {
 
 	printf("msh> ");	
 	while (fgets(buf, MAX_LINE_BUFFER, stdin)) {
+
+        check_background_jobs(); //verificamos si hay trabajos en segundo plano
 		
 		line = tokenize(buf);
 		if (line==NULL) {
@@ -189,6 +215,13 @@ int check_if_internal(tline *line)
 
     }
 
+    if (strcmp(line -> commands[0].argv[0],"jobs") == 0)
+    {
+        execute_internal_jobs(line);
+        return 1;
+
+    }
+
     return 0;
 }
 
@@ -288,4 +321,95 @@ void execute_internal_umask(tline *line)
         return;
     }
 
+}
+
+job_t *find_job(pid_t pgid){
+    int i;
+    for(i = 0; i < MAX_JOBS; i++){
+        if(job_table[i].pgid == pgid){
+            return &job_table[i];
+        }
+    }
+    return NULL;
+}
+
+void check_background_jobs(){
+    pid_t pid;
+    int status;
+    job_t *job;
+    pid_t pgid;
+
+    while((pid = waitpid(-1, &status, WNOHANG | WUNTRACED | WCONTINUED)) > 0){
+        //-1 para que espere el cambio de estado de cualquier proceso hijo
+        //WNOHANG para que waitpid devuelva 0 si ningún hijo ha cambiado de estado
+        //WUNTRACED para que waitpid informe si un proceso ha sido detenido
+        //WCONTINUED para que waitpid informe si un proceso ha sido reanudado
+    
+        pgid = getpgid(pid); //obtenemos el pgid del proceso que cambio de estado
+        
+        if (pgid == -1) { //control de un posible fallo
+            continue; 
+        }
+
+        job = find_job(pgid);
+        //a través de status comprobamos si el proceso ha sido:
+        //caso 1: terminado con exit o con alguna otra señal
+        if(WIFEXITED(status) || WIFSIGNALED(status)){
+            printf("\n[%d]+ DONE\t\t%s\n", job->job_id, job->command);
+            job->pgid = 0; //para liberarlo, usamos -> ya que es un puntero a job lo que tenemos
+        }else if(WIFSTOPPED(status)){ //caso 2: ha sido detenido
+            job->status = STOPPED; //cambiamos el estado del job
+            printf("\n[%d]+ STOPPED\t\t%s\n", job->job_id, job->command);
+        }else if(WIFCONTINUED(status)){  //caso 3: ha sido reanudado
+            job->status = RUNNING;
+            printf("\n[%d]+ Running\t\t%s\n", job->job_id, job->command);
+        }
+    }
+    //si hubo algún cambio de estado entonces hay que volver a mostrar el prompt
+    if(pid != 0){
+        printf("msh> ");
+        fflush(stdout); //para que se muestre inmediatamnete
+    }
+}
+
+void execute_internal_jobs(tline *line){
+    int i;
+    char marker = ' '; //de momento no pongo + o - lo dejaremos para cuando tengamos el bg y tal pq es más dificil de implementar
+    if(line->ncommands > 1 || line->commands[0].argc > 1 || line->redirect_input != NULL || line->redirect_output != NULL || line->redirect_error != NULL){
+        fprintf(stderr,"Error no se puede usar jobs con pipes, redirecciones o argumentos.");
+        return;
+    }
+    //ahora tenemos que imprimir la lista de trabajos que tenemos
+    for(i = 0; i < MAX_JOBS; i++){
+        if(job_table[i].pgid != 0 && job_table[i].status != DONE){
+            char *status;
+            if(job_table[i].status == RUNNING){
+                status = "Running";
+            }else if(job_table[i].status == STOPPED){
+                status = "Stopped";
+            }
+            
+            //formato: [job_table[i].job_id]+ job_table[i].status job_table[i].command
+            printf("[%d]%c %s\t%s\n", job_table[i].job_id, marker, status,job_table[i].command);
+        }
+    }
+}
+
+//todavía no la usamos pero la dejo hecha
+void register_job(pid_t pgid, const char *command){
+    int i;
+    for(i = 0; i < MAX_JOBS; i++){
+        //buscamos el primer slot libre para meterlo q se indetifica con pgid = 0
+        if(job_table[i].pgid == 0){
+            job_table[i].pgid = pgid;
+            job_table[i].job_id = next_job_id++;
+            job_table[i].status = RUNNING;
+            strncpy(job_table[i].command, command, MAX_LINE_BUFFER - 1); 
+            job_table[i].command[MAX_LINE_BUFFER - 1] = '\0';
+            printf("[%d] %d\n", job_table[i].job_id, pgid); //para informar al usuario
+            return;
+        }
+    }
+    //si no ha encontrado ningún hueco es que la tabla está llena así que tiene que dar un error
+    fprintf(stderr, "msh: Límite de trabajos en segundo plano alcanzado.\n");
 }
