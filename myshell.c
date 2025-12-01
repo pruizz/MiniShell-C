@@ -22,6 +22,8 @@ typedef struct job{
     char command[MAX_LINE_BUFFER]; //para guardar el comando original
     enum job_state status;
     int job_id;
+    int ncommands; //para registrar cuantos comandos tiene el pipe
+    int processes_running; //para llevar cuantos procesos quedan, cuando llegue a 0 estará a DONE
 } job_t;
 
 job_t job_table[MAX_JOBS]; //para guardar toda la tabla de trabajos
@@ -49,6 +51,7 @@ int main(void) {
     int i;
     int last_pipe_fd;
     int p[2];
+    pid_t job_pgid = 0;  //para manejar el pgid del job actual
 
 	printf("msh> ");	
 	while (fgets(buf, MAX_LINE_BUFFER, stdin)) {
@@ -67,7 +70,9 @@ int main(void) {
         }
         
         last_pipe_fd = -1;
-        for ( i = 0; i< line -> ncommands; i++){
+        job_pgid = 0; //reseteo de los jobs
+
+        for ( i = 0; i < line -> ncommands; i++){
             //Creacion de la pipe --> Solo necesario si no soy el ultimo mandato
             if( i < line-> ncommands-1 ) {
                if (pipe(p) < 0) {
@@ -84,6 +89,10 @@ int main(void) {
             //Soy Proceso Hijo
             else if (pid == 0)
             {
+
+                pid_t pgid_hijo = (i == 0) ? 0 : job_pgid;
+                setpgid(0, pgid_hijo); //con el set, si es (0,0) crea un grupo de procesos y para los demás pgid_hijo se unen a ese grupo
+
                 //Si last pipe tiene valor signifca que tengo que recibir la entrada desde la pipe
                 //Apunto el extremo de lecuta del pipe que ha guardado el padre a mi entrada estandar
                 if (last_pipe_fd != -1){
@@ -114,6 +123,10 @@ int main(void) {
             }
             //PADRE
             else{
+                if(i == 0){
+                    job_pgid = pid; //pid del primer hijo es pgid del job
+                }
+                setpgid(pid, job_pgid);
                 //Si cuando entramos al padre ya hay asignado un pipe significa que ya estamos en el 2 hijo minimo
                 //Por lo que me cierro el antiguo descriptor que tenia asociado para liberar lod fd
                 //Si no lo cerrara como padre tendria muchisimos descriptores abiertos en mi tabla
@@ -131,9 +144,14 @@ int main(void) {
                 }
             }
         }
-        // Esperar a todos los hijos creados en el bucle
-        for (i = 0; i < line->ncommands; i++) {
-            wait(&status);
+        if (line->background) { //se cumple si usuario pone & al final del comando
+            //en background registramos el job sin esperar
+            register_job(job_pgid, buf, line->ncommands);
+        }else{
+            //en foreground esperamos a que terminen todos los hijos
+            for(i = 0; i < line->ncommands; i++) {
+                wait(&status); 
+            }
         }
         printf("msh> ");			
     }
@@ -352,11 +370,18 @@ void check_background_jobs(){
         }
 
         job = find_job(pgid);
+        if(job == NULL){
+            continue;
+        }
         //a través de status comprobamos si el proceso ha sido:
         //caso 1: terminado con exit o con alguna otra señal
         if(WIFEXITED(status) || WIFSIGNALED(status)){
-            printf("\n[%d]+ DONE\t\t%s\n", job->job_id, job->command);
-            job->pgid = 0; //para liberarlo, usamos -> ya que es un puntero a job lo que tenemos
+            job->processes_running--;
+            if(job->processes_running == 0){ //si era el último entonces pasa a DONE
+                printf("\n[%d]+ DONE\t\t%s\n", job->job_id, job->command);
+                job->status = DONE;
+                job->pgid = 0; //para liberarlo, usamos -> ya que es un puntero a job lo que tenemos
+            }
         }else if(WIFSTOPPED(status)){ //caso 2: ha sido detenido
             job->status = STOPPED; //cambiamos el estado del job
             printf("\n[%d]+ STOPPED\t\t%s\n", job->job_id, job->command);
@@ -364,11 +389,6 @@ void check_background_jobs(){
             job->status = RUNNING;
             printf("\n[%d]+ Running\t\t%s\n", job->job_id, job->command);
         }
-    }
-    //si hubo algún cambio de estado entonces hay que volver a mostrar el prompt
-    if(pid != 0){
-        printf("msh> ");
-        fflush(stdout); //para que se muestre inmediatamnete
     }
 }
 
@@ -396,7 +416,7 @@ void execute_internal_jobs(tline *line){
 }
 
 //todavía no la usamos pero la dejo hecha
-void register_job(pid_t pgid, const char *command){
+void register_job(pid_t pgid, const char *command, int ncommands){
     int i;
     for(i = 0; i < MAX_JOBS; i++){
         //buscamos el primer slot libre para meterlo q se indetifica con pgid = 0
@@ -404,6 +424,8 @@ void register_job(pid_t pgid, const char *command){
             job_table[i].pgid = pgid;
             job_table[i].job_id = next_job_id++;
             job_table[i].status = RUNNING;
+            job_table[i].ncommands = ncommands;
+            job_table[i].processes_running = ncommands;
             strncpy(job_table[i].command, command, MAX_LINE_BUFFER - 1); 
             job_table[i].command[MAX_LINE_BUFFER - 1] = '\0';
             printf("[%d] %d\n", job_table[i].job_id, pgid); //para informar al usuario
