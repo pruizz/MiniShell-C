@@ -40,7 +40,7 @@ void execute_internal_exit();
 void execute_internal_jobs(tline *line);
 //funciones auxiliares para la gestión de los jobs
 job_t *find_job(pid_t pgid); 
-void register_job(pid_t pgid, const char *command); 
+void register_job(pid_t pgid, const char *command, int ncommands); 
 void check_background_jobs();
 
 int main(void) {
