@@ -84,7 +84,7 @@ He implementado varios mandatos *built-in* que se ejecutan directamente en la sh
 2.  **Compila el proyecto:**
     (Ajusta esta línea según cómo enlaces la librería `parser`. Si tienes un `Makefile`, ¡mejor!)
     ```bash
-    gcc -o myshell myshell.c parser/parser.c -Wall -Wextra
+    gcc -Wall -Wextra myshell.c -L. libparser.a -o myshell -static
     ```
     *Si usas un Makefile:*
     ```bash
