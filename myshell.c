@@ -521,10 +521,11 @@ void execute_internal_bg(tline *line){
     int job_id;
     job_t *job = NULL;
     int i;
+    int max_stopped_id;
 
     //Comprobar si se ha llamado como bg solo -> entonces reanudamos ell ultimo paradpo
    if (line->commands[0].argc == 1) {
-        int max_stopped_id = -1;
+        max_stopped_id = -1;
         //Buscar el trabajo STOPPED con MAYOR ID
         for (i = 0; i < MAX_JOBS; i++) {
             if (job_table[i].pgid != 0 && job_table[i].status == STOPPED) {
