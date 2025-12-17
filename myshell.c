@@ -54,7 +54,9 @@ int main(void) {
     int i;
     int last_pipe_fd;
     int p[2];
-    pid_t job_pgid = 0;  //para manejar el pgid del job actual
+    pid_t job_pgid = 0;
+    pid_t pgid_hijo;
+    job_t *j;
 
 	printf("msh> ");	
 	while (fgets(buf, MAX_LINE_BUFFER, stdin)) {
@@ -103,7 +105,7 @@ int main(void) {
                 signal(SIGINT, SIG_DFL);
                 signal(SIGTSTP, SIG_DFL);
 
-                pid_t pgid_hijo = (i == 0) ? 0 : job_pgid;
+                pgid_hijo = (i == 0) ? 0 : job_pgid;
                 setpgid(0, pgid_hijo); //con el set, si es (0,0) crea un grupo de procesos y para los demás pgid_hijo se unen a ese grupo
 
                 //Si last pipe tiene valor signifca que tengo que recibir la entrada desde la pipe
@@ -179,7 +181,7 @@ int main(void) {
                 if (WIFSTOPPED(status)){
                     printf("\n[%d]+ Stopped\t%s\n", next_job_id, buf);
                     register_job(job_pgid, buf, line->ncommands);
-                    job_t *j = find_job(job_pgid);
+                    j = find_job(job_pgid);
                     if (j)
                     {
                         j->status = STOPPED;
@@ -457,6 +459,8 @@ void execute_internal_jobs(tline *line){
     int i;
     int current_id = -1;  // Para el signo +
     int previous_id = -1; // Para el signo -
+    char marker;
+    char *status_str;
 
     if(line->ncommands > 1 || line->commands[0].argc > 1 || line->redirect_input != NULL){
         fprintf(stderr,"jobs: Error. No se permite usar jobs con argumentos o pipes\n");
@@ -479,8 +483,8 @@ void execute_internal_jobs(tline *line){
     // PASO 2: Imprimir con los marcadores
     for(i = 0; i < MAX_JOBS; i++){
         if(job_table[i].pgid != 0 && job_table[i].status != DONE){
-            char *status_str = (job_table[i].status == RUNNING) ? "Running" : "Stopped";
-            char marker = ' ';
+            status_str = (job_table[i].status == RUNNING) ? "Running" : "Stopped";
+            marker = ' ';
             
             if (job_table[i].job_id == current_id) 
             {
@@ -496,7 +500,6 @@ void execute_internal_jobs(tline *line){
     }
 }
 
-//todavía no la usamos pero la dejo hecha
 void register_job(pid_t pgid, const char *command, int ncommands){
     int i;
     for(i = 0; i < MAX_JOBS; i++){
